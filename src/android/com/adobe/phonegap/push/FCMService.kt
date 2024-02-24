@@ -465,6 +465,7 @@ class FCMService : FirebaseMessagingService() {
       addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
       putExtra(PushConstants.PUSH_BUNDLE, extras)
       putExtra(PushConstants.NOT_ID, notId)
+      putExtra(PushConstants.ACTION_CALLBACK, extras?.getString(PushConstants.CALLBACK))
     }
     val random = SecureRandom()
     var requestCode = random.nextInt()

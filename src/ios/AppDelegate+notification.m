@@ -154,7 +154,6 @@ NSString *const pushPluginApplicationDidBecomeActiveNotification = @"pushPluginA
 - (void)pushPluginOnApplicationDidBecomeActive:(NSNotification *)notification {
 
     NSLog(@"active");
-    
     NSString *firstLaunchKey = @"firstLaunchKey";
     NSUserDefaults *defaults = [[NSUserDefaults alloc] initWithSuiteName:@"phonegap-plugin-push"];
     if (![defaults boolForKey:firstLaunchKey]) {
@@ -197,7 +196,25 @@ NSString *const pushPluginApplicationDidBecomeActiveNotification = @"pushPluginA
     pushHandler.isInline = YES;
     [pushHandler notificationReceived];
 
-    completionHandler(UNNotificationPresentationOptionNone);
+    UNNotificationPresentationOptions presentationOptions = UNNotificationPresentationOptionNone;
+    id settingPresentationOptionsString = [self.viewController.settings objectForKey:@"iosPushPresentationOptions"];
+    if (settingPresentationOptionsString != nil && [settingPresentationOptionsString isKindOfClass:[NSString class]]) {
+        NSArray *settingPresentationOptions = [settingPresentationOptionsString componentsSeparatedByString:@","];
+        // Iterando a través de las opciones obtenidas del array
+        for (NSString *option in settingPresentationOptions) {
+            // Comprobando cada opción y agregando las correspondientes opciones de presentación
+            if ([option isEqualToString:@"alert"]) {
+                presentationOptions |= UNNotificationPresentationOptionAlert;
+            } else if ([option isEqualToString:@"badge"]) {
+                presentationOptions |= UNNotificationPresentationOptionBadge;
+            } else if ([option isEqualToString:@"sound"]) {
+                presentationOptions |= UNNotificationPresentationOptionSound;
+            } else {
+                NSLog(@"Unknown presentation option: %@", option);
+            }
+        }
+    }
+    completionHandler(presentationOptions);
 }
 
 - (void)userNotificationCenter:(UNUserNotificationCenter *)center
@@ -207,7 +224,9 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
     NSLog(@"Push Plugin didReceiveNotificationResponse: actionIdentifier %@, notification: %@", response.actionIdentifier,
           response.notification.request.content.userInfo);
     NSMutableDictionary *userInfo = [response.notification.request.content.userInfo mutableCopy];
-    [userInfo setObject:response.actionIdentifier forKey:@"actionCallback"];
+
+    NSString *actionCallback = [response.actionIdentifier isEqualToString:UNNotificationDefaultActionIdentifier] ? userInfo[@"callback"] : response.actionIdentifier;
+    [userInfo setObject:actionCallback != nil ? actionCallback : [NSNull new]  forKey:@"actionCallback"];
     NSLog(@"Push Plugin userInfo %@", userInfo);
 
     switch ([UIApplication sharedApplication].applicationState) {
@@ -223,14 +242,7 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
         case UIApplicationStateInactive:
         {
             NSLog(@"coldstart");
-            
-            if([response.actionIdentifier rangeOfString:@"UNNotificationDefaultActionIdentifier"].location == NSNotFound) {
-                self.launchNotification = userInfo;
-            }
-            else {
-                self.launchNotification = response.notification.request.content.userInfo;
-            }
-            
+            self.launchNotification = userInfo;
             self.coldstart = [NSNumber numberWithBool:YES];
             break;
         }
