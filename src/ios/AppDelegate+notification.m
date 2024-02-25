@@ -197,7 +197,7 @@ NSString *const pushPluginApplicationDidBecomeActiveNotification = @"pushPluginA
     [pushHandler notificationReceived];
 
     UNNotificationPresentationOptions presentationOptions = UNNotificationPresentationOptionNone;
-    id settingPresentationOptionsString = [self.viewController.settings objectForKey:@"iosPushPresentationOptions"];
+    id settingPresentationOptionsString = [self.viewController.settings objectForKey:@"iospushpresentationoptions"];
     if (settingPresentationOptionsString != nil && [settingPresentationOptionsString isKindOfClass:[NSString class]]) {
         NSArray *settingPresentationOptions = [settingPresentationOptionsString componentsSeparatedByString:@","];
         // Iterando a través de las opciones obtenidas del array
