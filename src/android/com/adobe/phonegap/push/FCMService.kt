@@ -310,6 +310,8 @@ class FCMService : FirebaseMessagingService() {
       // This is to support parse.com and other services. Issue #147 and pull #218
       if (
         key == PushConstants.PARSE_COM_DATA ||
+        key == PushConstants.AWS_PINPOINT_DATA ||
+        key == PushConstants.AWS_PINPOINT_JSON_BODY ||
         key == PushConstants.MESSAGE ||
         key == messageKey
       ) {
@@ -321,30 +323,26 @@ class FCMService : FirebaseMessagingService() {
 
           try {
             // If object contains message keys promote each value to the root of the bundle
-            val data = JSONObject(json)
-            if (
-              data.has(PushConstants.ALERT)
-              || data.has(PushConstants.MESSAGE)
-              || data.has(PushConstants.BODY)
-              || data.has(PushConstants.TITLE)
-              || data.has(messageKey)
-              || data.has(titleKey)
-            ) {
-              val jsonKeys = data.keys()
+            var data = JSONObject(json)
+            if (data.has("pinpoint")) {
+              data = data.getJSONObject("pinpoint");
+            }
+            val jsonKeys = data.keys()
 
-              while (jsonKeys.hasNext()) {
-                var jsonKey = jsonKeys.next()
-                Log.d(TAG, "key = data/$jsonKey")
+            while (jsonKeys.hasNext()) {
+              var jsonKey = jsonKeys.next()
+              Log.d(TAG, "key = data/$jsonKey")
 
+              if (jsonKey == PushConstants.LOC_KEY  || jsonKey == PushConstants.LOC_DATA) {
+                val newKey = normalizeKey(key, messageKey, titleKey, newExtras)
+                Log.d(TAG, "replace key $key with $newKey")
+                replaceKey(key, newKey, extras, newExtras)
+              } else {
                 var value = data.getString(jsonKey)
                 jsonKey = normalizeKey(jsonKey, messageKey, titleKey, newExtras)
                 value = localizeKey(jsonKey, value)
                 newExtras.putString(jsonKey, value)
               }
-            } else if (data.has(PushConstants.LOC_KEY) || data.has(PushConstants.LOC_DATA)) {
-              val newKey = normalizeKey(key, messageKey, titleKey, newExtras)
-              Log.d(TAG, "replace key $key with $newKey")
-              replaceKey(key, newKey, extras, newExtras)
             }
           } catch (e: JSONException) {
             Log.e(TAG, "normalizeExtras: JSON exception")

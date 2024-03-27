@@ -80,6 +80,8 @@ object PushConstants {
   const val AWS_PINPOINT_BODY: String = "pinpoint.notification.body"
   const val AWS_PINPOINT_PICTURE: String = "pinpoint.notification.imageUrl"
   const val AWS_PINPOINT_PREFIX: String = "pinpoint.notification"
+  const val AWS_PINPOINT_JSON_BODY: String = "pinpoint.jsonBody"
+  const val AWS_PINPOINT_DATA: String = "data"
   const val MP_MESSAGE: String = "mp_message"
   const val START_IN_BACKGROUND: String = "cdvStartInBackground"
   const val FORCE_START: String = "force-start"
