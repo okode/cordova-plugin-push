@@ -64,7 +64,7 @@
 - (void)didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken;
 - (void)didFailToRegisterForRemoteNotificationsWithError:(NSError *)error;
 
-- (void)setNotificationMessage:(NSDictionary *)notification;
++ (NSDictionary*)normalizeNotification:(NSDictionary *)notification;
 - (void)notificationReceived;
 
 - (void)willSendDataMessageWithID:(NSString *)messageID error:(NSError *)error;

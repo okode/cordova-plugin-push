@@ -36,7 +36,7 @@
 
 @implementation PushPlugin : CDVPlugin
 
-@synthesize notificationMessage;
+@synthesize notificationMessage = _notificationMessage;
 @synthesize isInline;
 @synthesize coldstart;
 
@@ -284,7 +284,10 @@
             // Load the file content and read the data into arrays
             NSDictionary *dict = [[NSDictionary alloc] initWithContentsOfFile:path];
             fcmSenderId = [dict objectForKey:@"GCM_SENDER_ID"];
-            BOOL isGcmEnabled = [[dict valueForKey:@"IS_GCM_ENABLED"] boolValue];
+            
+            id forceApnsRawValue = [iosOptions objectForKey:@"forceApns"];
+            BOOL forceApns = forceApnsRawValue != [NSNull null] && [forceApnsRawValue boolValue];
+            BOOL isGcmEnabled = !forceApns && [[dict valueForKey:@"IS_GCM_ENABLED"] boolValue];
 
             NSLog(@"FCM Sender ID %@", fcmSenderId);
 
@@ -313,7 +316,7 @@
                 [self setFcmSandbox:@YES];
             }
 
-            if (notificationMessage) {            // if there is a pending startup notification
+            if (self.notificationMessage) {            // if there is a pending startup notification
                 dispatch_async(dispatch_get_main_queue(), ^{
                     // delay to allow JS event handlers to be setup
                     [self performSelector:@selector(notificationReceived) withObject:nil afterDelay: 0.5];
@@ -322,6 +325,44 @@
 
         }];
     }
+}
+
++ (NSDictionary *)normalizeNotification:(NSDictionary *)userInfo {
+    // Normalizes notification messa
+    if (userInfo)
+    {
+        NSMutableDictionary* message = [NSMutableDictionary dictionaryWithCapacity:4];
+        for (id key in userInfo) {
+            id value = [userInfo objectForKey:key];
+            if ([key isEqualToString:@"data"] && [value isKindOfClass:[NSDictionary class]] && [value objectForKey:@"pinpoint"] != nil) {
+                id dataDict = (NSDictionary *)value;
+                for (id dataKey in dataDict) {
+                    id dataValue = [dataDict objectForKey:dataKey];
+                    if (([dataKey isEqualToString:@"pinpoint"] || [dataKey isEqualToString:@"jsonBody"]) && [dataValue isKindOfClass:[NSDictionary class]]) {
+                        NSDictionary *dataDictValue = (NSDictionary *)dataValue;
+                        [dataDictValue enumerateKeysAndObjectsUsingBlock:^(id key, id value, BOOL *stop) {
+                            [message setObject:value forKey:key];
+                        }];
+                    } else {
+                        [message setObject:dataValue forKey:dataKey];
+                    }
+                }
+            } else {
+                [message setObject:value forKey:key];
+            }
+        }
+        return message;
+    } else {
+        return userInfo;
+    }
+}
+
+- (void)setNotificationMessage:(NSDictionary *)userInfo {
+    _notificationMessage = [PushPlugin normalizeNotification:userInfo];
+}
+
+- (NSDictionary *)notificationMessage {
+    return _notificationMessage;
 }
 
 - (UNNotificationAction *)createAction:(NSDictionary *)dictionary {
@@ -403,15 +444,15 @@
 - (void)notificationReceived {
     NSLog(@"Notification received");
 
-    if (notificationMessage && self.callbackId != nil)
+    if (self.notificationMessage && self.callbackId != nil)
     {
         NSMutableDictionary* message = [NSMutableDictionary dictionaryWithCapacity:4];
         NSMutableDictionary* additionalData = [NSMutableDictionary dictionaryWithCapacity:4];
 
 
-        for (id key in notificationMessage) {
+        for (id key in self.notificationMessage) {
             if ([key isEqualToString:@"aps"]) {
-                id aps = [notificationMessage objectForKey:@"aps"];
+                id aps = [self.notificationMessage objectForKey:@"aps"];
 
                 for(id key in aps) {
                     NSLog(@"Push Plugin key: %@", key);
@@ -446,7 +487,7 @@
                     }
                 }
             } else {
-                [additionalData setObject:[notificationMessage objectForKey:key] forKey:key];
+                [additionalData setObject:[self.notificationMessage objectForKey:key] forKey:key];
             }
         }
 

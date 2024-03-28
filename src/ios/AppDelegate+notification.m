@@ -225,7 +225,8 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
           response.notification.request.content.userInfo);
     NSMutableDictionary *userInfo = [response.notification.request.content.userInfo mutableCopy];
 
-    NSString *actionCallback = [response.actionIdentifier isEqualToString:UNNotificationDefaultActionIdentifier] ? userInfo[@"callback"] : response.actionIdentifier;
+    NSDictionary *normalizedNotification = [PushPlugin normalizeNotification:userInfo];
+    NSString *actionCallback = [response.actionIdentifier isEqualToString:UNNotificationDefaultActionIdentifier] ? normalizedNotification[@"callback"] : response.actionIdentifier;
     [userInfo setObject:actionCallback != nil ? actionCallback : [NSNull new]  forKey:@"actionCallback"];
     NSLog(@"Push Plugin userInfo %@", userInfo);
 
